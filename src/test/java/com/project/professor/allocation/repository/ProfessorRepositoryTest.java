@@ -24,7 +24,7 @@ public class ProfessorRepositoryTest {
 	@Test
 	public void cerateProfessor() {
 		Department dep = new Department();
-		dep.setId(2L);
+		dep.setId(1L);
 		
 		Professor prof = new Professor();
 		prof.setCpf("444444444");
