@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.project.professor.allocation.entity.Department;
+import com.project.professor.allocation.exception.NotFoundException;
 import com.project.professor.allocation.repository.DepartmentRepository;
 
 @Service
@@ -21,7 +22,8 @@ public class DepartmentService {
 	}
 
 	public Department findById(Long id) {
-		return departmentRepository.findById(id).orElse(null);
+		return departmentRepository.findById(id)
+				.orElseThrow(() -> new NotFoundException("Departamento não encontrado com o ID: " + id));
 	}
 
 	public Department save(Department department) {
@@ -33,15 +35,16 @@ public class DepartmentService {
 		Long id = department.getId();
 
 		if (id == null || !departmentRepository.existsById(id)) {
-			return null;
+			throw new NotFoundException("Departamento não encontrado com o ID: " + id);
 		}
 
 		return departmentRepository.save(department);
 	}
 
 	public void deleteById(Long id) {
-		if (departmentRepository.existsById(id)) {
-			departmentRepository.deleteById(id);
+		if (!departmentRepository.existsById(id)) {
+			throw new NotFoundException("Departamento não encontrado com o ID: " + id);
 		}
+		departmentRepository.deleteById(id);
 	}
 }

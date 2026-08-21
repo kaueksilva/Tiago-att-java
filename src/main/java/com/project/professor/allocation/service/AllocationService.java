@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import com.project.professor.allocation.entity.Allocation;
 import com.project.professor.allocation.entity.Course;
 import com.project.professor.allocation.entity.Professor;
+import com.project.professor.allocation.exception.NotFoundException;
 import com.project.professor.allocation.repository.AllocationRepository;
 
 @Service
@@ -31,7 +32,8 @@ public class AllocationService {
 	}
 
 	public Allocation findById(Long id) {
-		return allocationRepository.findById(id).orElse(null);
+		return allocationRepository.findById(id)
+				.orElseThrow(() -> new NotFoundException("Alocação não encontrada com o ID: " + id));
 	}
 
 	public List<Allocation> findByProfessor(Long professorId) {
@@ -55,16 +57,17 @@ public class AllocationService {
 		Long id = allocation.getId();
 
 		if (id == null || !allocationRepository.existsById(id)) {
-			return null;
+			throw new NotFoundException("Alocação não encontrada com o ID: " + id);
 		}
 
 		return saveInternal(allocation);
 	}
 
 	public void deleteById(Long id) {
-		if (allocationRepository.existsById(id)) {
-			allocationRepository.deleteById(id);
+		if (!allocationRepository.existsById(id)) {
+			throw new NotFoundException("Alocação não encontrada com o ID: " + id);
 		}
+		allocationRepository.deleteById(id);
 	}
 
 	private Allocation saveInternal(Allocation allocation) {
@@ -82,12 +85,12 @@ public class AllocationService {
 
 		Professor professor = professorService.findById(allocation.getProfessor().getId());
 		if (professor == null) {
-			throw new IllegalArgumentException("Professor não encontrado.");
+			throw new NotFoundException("Professor não encontrado com o ID: " + allocation.getProfessor().getId());
 		}
 
 		Course course = courseService.findById(allocation.getCourse().getId());
 		if (course == null) {
-			throw new IllegalArgumentException("Curso não encontrado.");
+			throw new NotFoundException("Curso não encontrado com o ID: " + allocation.getCourse().getId());
 		}
 
 		if (hasCollision(allocation)) {

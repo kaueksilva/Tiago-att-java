@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import com.project.professor.allocation.entity.Department;
 import com.project.professor.allocation.entity.Professor;
+import com.project.professor.allocation.exception.NotFoundException;
 import com.project.professor.allocation.repository.ProfessorRepository;
 
 @Service
@@ -27,7 +28,8 @@ public class ProfessorService {
 	}
 
 	public Professor findById(Long id) {
-		return professorRepository.findById(id).orElse(null);
+		return professorRepository.findById(id)
+				.orElseThrow(() -> new NotFoundException("Professor não encontrado com o ID: " + id));
 	}
 
 	public List<Professor> findByName(String partName) {
@@ -49,16 +51,17 @@ public class ProfessorService {
 		Long id = professor.getId();
 
 		if (id == null || !professorRepository.existsById(id)) {
-			return null;
+			throw new NotFoundException("Professor não encontrado com o ID: " + id);
 		}
 
 		return saveInternal(professor);
 	}
 
 	public void deleteById(Long id) {
-		if (professorRepository.existsById(id)) {
-			professorRepository.deleteById(id);
+		if (!professorRepository.existsById(id)) {
+			throw new NotFoundException("Professor não encontrado com o ID: " + id);
 		}
+		professorRepository.deleteById(id);
 	}
 
 	private Professor saveInternal(Professor professor) {
@@ -68,7 +71,7 @@ public class ProfessorService {
 
 		Department department = departmentService.findById(professor.getDepartment().getId());
 		if (department == null) {
-			throw new IllegalArgumentException("Departamento não encontrado.");
+			throw new NotFoundException("Departamento não encontrado com o ID: " + professor.getDepartment().getId());
 		}
 
 		professor = professorRepository.save(professor);

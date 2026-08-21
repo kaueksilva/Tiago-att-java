@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.project.professor.allocation.entity.Course;
+import com.project.professor.allocation.exception.NotFoundException;
 import com.project.professor.allocation.repository.CourseRepository;
 
 @Service
@@ -21,7 +22,8 @@ public class CourseService {
 	}
 
 	public Course findById(Long id) {
-		return courseRepository.findById(id).orElse(null);
+		return courseRepository.findById(id)
+				.orElseThrow(() -> new NotFoundException("Curso não encontrado com o ID: " + id));
 	}
 
 	public Course save(Course course) {
@@ -33,15 +35,16 @@ public class CourseService {
 		Long id = course.getId();
 
 		if (id == null || !courseRepository.existsById(id)) {
-			return null;
+			throw new NotFoundException("Curso não encontrado com o ID: " + id);
 		}
 
 		return courseRepository.save(course);
 	}
 
 	public void deleteById(Long id) {
-		if (courseRepository.existsById(id)) {
-			courseRepository.deleteById(id);
+		if (!courseRepository.existsById(id)) {
+			throw new NotFoundException("Curso não encontrado com o ID: " + id);
 		}
+		courseRepository.deleteById(id);
 	}
 }

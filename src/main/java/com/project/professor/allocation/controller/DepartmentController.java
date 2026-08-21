@@ -13,9 +13,11 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
+import com.project.professor.allocation.dto.DepartmentRequest;
+import com.project.professor.allocation.dto.DepartmentResponse;
 import com.project.professor.allocation.entity.Department;
+import com.project.professor.allocation.mapper.DepartmentMapper;
 import com.project.professor.allocation.service.DepartmentService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,6 +25,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @Tag(name = "Departments")
 @RestController
@@ -41,9 +44,12 @@ public class DepartmentController {
     	@ApiResponse(responseCode = "200", description = "OK")
     })
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<Department>> findAll() {
+    public ResponseEntity<List<DepartmentResponse>> findAll() {
         List<Department> departments = departmentService.findAll();
-        return new ResponseEntity<>(departments, HttpStatus.OK);
+        List<DepartmentResponse> responses = departments.stream()
+                .map(DepartmentMapper::toResponse)
+                .toList();
+        return new ResponseEntity<>(responses, HttpStatus.OK);
     }
 
     @Operation(summary = "Find a department")
@@ -53,13 +59,9 @@ public class DepartmentController {
     	@ApiResponse(responseCode = "404", description = "Not Found", content = @Content)
     })
     @GetMapping(path = "/{department_id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Department> findById(@PathVariable(name = "department_id") Long id) {
+    public ResponseEntity<DepartmentResponse> findById(@PathVariable(name = "department_id") Long id) {
         Department department = departmentService.findById(id);
-        if (department == null) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        } else {
-            return new ResponseEntity<>(department, HttpStatus.OK);
-        }
+        return new ResponseEntity<>(DepartmentMapper.toResponse(department), HttpStatus.OK);
     }
 
     @Operation(summary = "Save a department")
@@ -68,13 +70,10 @@ public class DepartmentController {
     	@ApiResponse(responseCode = "400", description = "Bad Request", content = @Content)
     })
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Department> save(@RequestBody Department department) {
-        try {
-            department = departmentService.save(department);
-            return new ResponseEntity<>(department, HttpStatus.CREATED);
-        } catch (Exception e) {
-        	throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
-        }
+    public ResponseEntity<DepartmentResponse> save(@Valid @RequestBody DepartmentRequest request) {
+        Department department = DepartmentMapper.toEntity(request);
+        department = departmentService.save(department);
+        return new ResponseEntity<>(DepartmentMapper.toResponse(department), HttpStatus.CREATED);
     }
 
     @Operation(summary = "Update a department")
@@ -84,19 +83,11 @@ public class DepartmentController {
     	@ApiResponse(responseCode = "404", description = "Not Found", content = @Content)
     })
     @PutMapping(path = "/{department_id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Department> update(@PathVariable(name = "department_id") Long id,
-                                             @RequestBody Department department) {
-        department.setId(id);
-        try {
-            department = departmentService.update(department);
-            if (department == null) {
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            } else {
-                return new ResponseEntity<>(department, HttpStatus.OK);
-            }
-        } catch (Exception e) {
-        	throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
-        }
+    public ResponseEntity<DepartmentResponse> update(@PathVariable(name = "department_id") Long id,
+                                                     @Valid @RequestBody DepartmentRequest request) {
+        Department department = DepartmentMapper.toEntity(request, id);
+        department = departmentService.update(department);
+        return new ResponseEntity<>(DepartmentMapper.toResponse(department), HttpStatus.OK);
     }
 
     @Operation(summary = "Delete a department")

@@ -13,9 +13,11 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
+import com.project.professor.allocation.dto.CourseRequest;
+import com.project.professor.allocation.dto.CourseResponse;
 import com.project.professor.allocation.entity.Course;
+import com.project.professor.allocation.mapper.CourseMapper;
 import com.project.professor.allocation.service.CourseService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,6 +25,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @Tag(name = "Courses")
 @RestController
@@ -41,9 +44,12 @@ public class CourseController {
     	@ApiResponse(responseCode = "200", description = "OK")
     })
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<Course>> findAll() {
+    public ResponseEntity<List<CourseResponse>> findAll() {
         List<Course> courses = courseService.findAll();
-        return new ResponseEntity<>(courses, HttpStatus.OK);
+        List<CourseResponse> responses = courses.stream()
+                .map(CourseMapper::toResponse)
+                .toList();
+        return new ResponseEntity<>(responses, HttpStatus.OK);
     }
 
     @Operation(summary = "Find a course")
@@ -53,13 +59,9 @@ public class CourseController {
     	@ApiResponse(responseCode = "404", description = "Not Found", content = @Content)
     })
     @GetMapping(path = "/{course_id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Course> findById(@PathVariable(name = "course_id") Long id) {
+    public ResponseEntity<CourseResponse> findById(@PathVariable(name = "course_id") Long id) {
         Course course = courseService.findById(id);
-        if (course == null) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        } else {
-            return new ResponseEntity<>(course, HttpStatus.OK);
-        }
+        return new ResponseEntity<>(CourseMapper.toResponse(course), HttpStatus.OK);
     }
 
     @Operation(summary = "Save a course")
@@ -68,13 +70,10 @@ public class CourseController {
     	@ApiResponse(responseCode = "400", description = "Bad Request", content = @Content)
     })
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Course> save(@RequestBody Course course) {
-        try {
-            course = courseService.save(course);
-            return new ResponseEntity<>(course, HttpStatus.CREATED);
-        } catch (Exception e) {
-        	throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
-        }
+    public ResponseEntity<CourseResponse> save(@Valid @RequestBody CourseRequest request) {
+        Course course = CourseMapper.toEntity(request);
+        course = courseService.save(course);
+        return new ResponseEntity<>(CourseMapper.toResponse(course), HttpStatus.CREATED);
     }
 
     @Operation(summary = "Update a course")
@@ -84,19 +83,11 @@ public class CourseController {
     	@ApiResponse(responseCode = "404", description = "Not Found", content = @Content)
     })
     @PutMapping(path = "/{course_id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Course> update(@PathVariable(name = "course_id") Long id,
-                                         @RequestBody Course course) {
-        course.setId(id);
-        try {
-            course = courseService.update(course);
-            if (course == null) {
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            } else {
-                return new ResponseEntity<>(course, HttpStatus.OK);
-            }
-        } catch (Exception e) {
-        	throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
-        }
+    public ResponseEntity<CourseResponse> update(@PathVariable(name = "course_id") Long id,
+                                               @Valid @RequestBody CourseRequest request) {
+        Course course = CourseMapper.toEntity(request, id);
+        course = courseService.update(course);
+        return new ResponseEntity<>(CourseMapper.toResponse(course), HttpStatus.OK);
     }
 
     @Operation(summary = "Delete a course")
